@@ -35,8 +35,9 @@ create table Seance
     salle      varchar2(20) not null,
     heureDebut smallint     not null,
     heureFin   smallint     not null,
-    enseignant int          not null,
+    enseignant varchar2(50) not null,
     constraint fk_cours FOREIGN KEY (cours) references Cours (code),
+    constraint fk_enseignant2 FOREIGN KEY (enseignant) references Enseignant (id),
     constraint pk_seance PRIMARY KEY (cours, numero),
     constraint type_enum check ( type in ('CM', 'TP', 'TD') ),
     constraint hours_logic check ( (heureFin between 0 and 23) and (heureDebut between 0 and heureFin - 1)
@@ -84,11 +85,11 @@ where C.intitule = 'Modélisation';
 -- (restreignez les réponses à l’ensemble des enseignants qui interviennent dans au moins
 -- deux cours).
 
-select E.prenom, E.id, count(C.code) "count"
+select E.prenom, E.id, count(Distinct (S.cours)) "count"
 from Enseignant E
-         inner join Cours C on E.id = C.responsable
+         inner join Seance S on S.enseignant = E.id
 group by (E.id, E.prenom)
-having count(C.code) > 2;
+having count(distinct (S.cours)) >= 2;
 
 
 -- 1.Ajoutez un cours magistral de Logique le 14 décembre avec Foulen ben foulen en salle
@@ -116,14 +117,13 @@ select C.intitule,
        S.heureDebut,
        (S.heureFin - S.heureDebut) "dure",
        S.salle,
-       COUNT(Et.CIN)               NbrEtudiant
+       COUNT(I.etudiant)           NbrEtudiant
 from Enseignant E
-         inner join Cours C on E.id = C.responsable
-         inner join Seance S on C.code = S.cours
+         inner join Seance S on E.id = S.enseignant
+         inner join Cours C on S.cours = C.code
          inner join INSCRIPTION I on I.COURS = C.code
-         inner join Etudiant Et on Et.CIN = I.etudiant
 where E.nom = 'Euler'
-group by (Et.CIN, C.intitule, S."date", S.heureDebut, S.heureFin, S.salle);
+group by (S.cours, S.numero);
 
 -- Imaginez une vue matérialisant l’emploi du temps d’une salle (par exemple la salle N267).
 
